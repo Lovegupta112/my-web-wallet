@@ -1,5 +1,5 @@
 import React ,{useState} from "react";
-import { Stack, Typography, IconButton, Input, Tooltip } from "@mui/material";
+import { Stack, Typography, IconButton, Tooltip } from "@mui/material";
 import { derivationPathType } from "./types";
 import DeleteIcon from "@mui/icons-material/Delete";
 import Visibility from "@mui/icons-material/Visibility";
