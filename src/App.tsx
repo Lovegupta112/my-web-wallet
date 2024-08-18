@@ -1,10 +1,10 @@
 import "./App.css";
-import React from "react";
+import { useState } from "react";
 import { Stack, Button ,Typography } from "@mui/material";
 import WalletComp from "./components/WalletComp";
 
 function App() {
-  const [active, setActive] = React.useState(false);
+  const [active, setActive] = useState(false);
 
   return (
     <>
