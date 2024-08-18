@@ -116,7 +116,7 @@ const WalletComp = () => {
   };
 
   const handleChange =
-    (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+    (panel: string) => ( isExpanded: boolean) => {
       setExpanded(isExpanded ? panel : false);
     };
 
@@ -294,7 +294,7 @@ const WalletComp = () => {
           </AccordionSummary>
           <AccordionDetails sx={{ backgroundColor: "transparent" }}>
             <Grid container>
-              {mnemonics?.split(" ")?.map((code, index) => {
+              {mnemonics?.split(" ")?.map((code) => {
                 return (
                   <Grid
                     key={code}
