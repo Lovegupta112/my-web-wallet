@@ -294,7 +294,7 @@ const WalletComp = () => {
           </AccordionSummary>
           <AccordionDetails sx={{ backgroundColor: "transparent" }}>
             <Grid container>
-              {mnemonics?.split(" ")?.map((code, index) => {
+              {mnemonics?.split(" ")?.map((code) => {
                 return (
                   <Grid
                     key={code}
