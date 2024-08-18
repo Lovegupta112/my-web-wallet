@@ -1,0 +1,12 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.icon{
+  width:30px;
+  height: 30px;
+  object-fit: contain;
+  /* color:#1c121200 */
+}
