@@ -12,7 +12,6 @@ import { derivationPathType } from "./types";
 import { Stack } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import axios from "axios";
-import { Keypair } from "@solana/web3.js";
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
