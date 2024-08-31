@@ -26,7 +26,7 @@ import ethereum from "../assets/ethereum.png";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { derivationPathType } from "./types";
+import { derivationPathType,createSolanaWalletType } from "./types";
 import Wallet from "./Wallet";
 import { TransitionProps } from "@mui/material/transitions";
 
@@ -48,7 +48,7 @@ const firstTimeSteps = [
 const WalletComp = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [mnemonics, setMnemonics] = useState<string>("");
-  const [inputMnemonicsCode, setInputMnemonicsCode] = useState<string>("");
+  const [inputMnemonicsCode, setInputMnemonicsCode] = useState<string>(localStorage.getItem("secret_phrase")|| "");
 
   const [currentSupportedBlockchain, setCurrentSupportedBlockchain] = useState<
     derivationPathType[]
@@ -74,22 +74,20 @@ const WalletComp = () => {
 
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = React.useState<string | false>(false);
-  const [addInputMnemonicsCode, setAddInputMnemonicsCode] =
-    useState<boolean>(false);
-
   const [deleteWalletInfo, setDeleteWalletInfo] = useState<
     derivationPathType | undefined
   >(undefined);
 
-  
-
   useEffect(() => {
-    const seed = localStorage.getItem("seed");
-    const prevSelectedBlockchain=localStorage.getItem('selectedBlockchain');
-    if (seed && prevSelectedBlockchain) {
-      setActiveStep(2);
-      setCurrentSupportedBlockchain(JSON.parse(prevSelectedBlockchain));
+    const prevSelectedBlockchain = localStorage.getItem("selectedBlockchain");
+
+    if (prevSelectedBlockchain) {
+      setCurrentSupportedBlockchain(JSON.parse(prevSelectedBlockchain) || []);
     }
+   if(prevSelectedBlockchain && inputMnemonicsCode ){
+    setActiveStep(2);
+    createWallet(false);
+   }
     const mnemonicCodes = generateMnemonic(128);
     setMnemonics(mnemonicCodes);
   }, []);
@@ -101,6 +99,10 @@ const WalletComp = () => {
   };
 
   const handleNext = () => {
+    if(inputMnemonicsCode && inputMnemonicsCode?.trim()?.split(" ")?.length!==12){
+      alert("Please write correct secret phrase !");
+      return;
+    }
     if (activeStep < firstTimeSteps.length) {
       setActiveStep((prevStep) => prevStep + 1);
     }
@@ -122,70 +124,108 @@ const WalletComp = () => {
 
   const selectBlockchain = (blockchain: derivationPathType) => {
     console.log("selectBlockchain: ", blockchain);
-    const updatedCurrentSupportedBlockchain= currentSupportedBlockchain.map((obj) => {
-      if (obj.name === blockchain.name) {
-        obj.selected = !obj.selected;
+    const updatedCurrentSupportedBlockchain = currentSupportedBlockchain.map(
+      (obj) => {
+        if (obj.name === blockchain.name) {
+          obj.selected = !obj.selected;
+        }
+        return obj;
       }
-      return obj;
-    })
-    localStorage.setItem('selectedBlockchain',JSON.stringify(updatedCurrentSupportedBlockchain));
-    setCurrentSupportedBlockchain(
-      updatedCurrentSupportedBlockchain
     );
+    localStorage.setItem(
+      "selectedBlockchain",
+      JSON.stringify(updatedCurrentSupportedBlockchain)
+    );
+    setCurrentSupportedBlockchain(updatedCurrentSupportedBlockchain);
   };
 
-  const createWallet = () => {
-    
-    const prevSelectedBlockchainData=localStorage.getItem('selectedBlockchain');
-    let prevSelectedBlockchain:derivationPathType[]=[];
-    if(prevSelectedBlockchainData){
-      prevSelectedBlockchain=JSON.parse(prevSelectedBlockchainData);
+  const handleAddInputMnemonics = () => {
+    if (
+      inputMnemonicsCode &&
+      inputMnemonicsCode?.trim()?.split(" ")?.length !== 12
+    ) {
+      alert("Please write correct secret phrase !");
+      return;
     }
-    
+    localStorage.setItem("secret_phrase", inputMnemonicsCode);
+  };
+
+
+  const createSolanaWallet:createSolanaWalletType=(solanaSelected,index,seed)=>{
+    const solanaPath = `${solanaSelected.derviationPath}/${index}'/0'`;
+    const derivedPathSeed = derivePath(solanaPath, seed.toString("hex")).key;
+    const secret = nacl.sign.keyPair.fromSeed(derivedPathSeed).secretKey;
+    const publicKey = Keypair.fromSecretKey(secret).publicKey.toBase58();
+    const privateKey = Keypair.fromSecretKey(secret).secretKey;
+     const  currentDerivationPath = {
+      ...solanaSelected,
+      derviationPath: solanaPath,
+      publicKey,
+      privateKey,
+    };
+    return currentDerivationPath;
+  }
+  const createWallet = (manually:boolean) => {
+    const prevSelectedBlockchainData =
+      localStorage.getItem("selectedBlockchain");
+    let prevSelectedBlockchain: derivationPathType[] = [];
+    if (prevSelectedBlockchainData) {
+      prevSelectedBlockchain = JSON.parse(prevSelectedBlockchainData);
+    }
+
+    let selectedBlockchain: derivationPathType[] =
+    prevSelectedBlockchain?.length > 0
+    ? prevSelectedBlockchain
+    : currentSupportedBlockchain;
+
+
     // for solana  ---
-    let selectedBlockchain:derivationPathType[]=prevSelectedBlockchain?.length>0?prevSelectedBlockchain:currentSupportedBlockchain;
     const solanaSelected = selectedBlockchain?.find(
-      (blockchain) => blockchain.selected 
+      (blockchain) => blockchain.selected && blockchain.name==='Solana'
     );
     if (solanaSelected) {
-      //checking if user has any mnemonics code ---
-      if (
-        addInputMnemonicsCode &&
-        inputMnemonicsCode &&
-        inputMnemonicsCode.split(" ").length < 12
-      ) {
-        alert("Please write correct secret phrase !");
-        return;
-      }
-      let seed;
       let mnemonicsCode;
-      const prevSeed = localStorage.getItem("seed");
-      if (prevSeed) {
-        seed = JSON.parse(prevSeed).data;
-
+      let prevMnemonicCode = localStorage.getItem("secret_phrase");
+      if (prevMnemonicCode) {
+        mnemonicsCode = prevMnemonicCode;
       } else {
+        //checking if user has any mnemonics code ---
         mnemonicsCode = inputMnemonicsCode ? inputMnemonicsCode : mnemonics;
-        seed = mnemonicToSeedSync(mnemonicsCode);
-        localStorage.setItem("seed", JSON.stringify(seed));
       }
-      const index = currentDerivationPathsWallet?.filter(
-        (blockchain) => blockchain.name === "Solana"
-      )?.length;
-      const solanaPath = `${solanaSelected.derviationPath}/${index}'/0'`;
-      const derivedPathSeed = derivePath(solanaPath, seed.toString("hex")).key;
-      const secret = nacl.sign.keyPair.fromSeed(derivedPathSeed).secretKey;
-      const publicKey = Keypair.fromSecretKey(secret).publicKey.toBase58();
-      const privateKey = Keypair.fromSecretKey(secret).secretKey;
-      const currentDerivationPath = {
-        ...solanaSelected,
-        derviationPath: solanaPath,
-        publicKey,
-        privateKey,
-      };
-      setCurrentDerivationPathsWallet([
+      let seed = mnemonicToSeedSync(mnemonicsCode);
+      let index=0;
+      const walletCount=localStorage.getItem('count_wallet');
+       if(walletCount && JSON.parse(walletCount)?.solanaWallet?.length>0){
+          index=Math.max(...(JSON.parse(walletCount)?.solanaWallet))+1;
+       }
+      //  index = currentDerivationPathsWallet?.filter(
+      //   (blockchain) => blockchain.name === "Solana"
+      // )?.length;
+      
+      if(manually){
+        let  currentDerivationPath=createSolanaWallet(solanaSelected,index,seed)
+       localStorage.setItem('count_wallet',JSON.stringify({"solanaWallet":[index+1]}));
+       setCurrentDerivationPathsWallet([
         ...currentDerivationPathsWallet,
         currentDerivationPath,
       ]);
+      }
+      else{
+        const walletCount=localStorage.getItem('count_wallet');
+        if(walletCount && JSON.parse(walletCount)?.solanaWallet){
+          let currentDerivationPaths:derivationPathType[]=[];
+          for(let index=0;index<JSON.parse(walletCount)?.solanaWallet;index++){
+            currentDerivationPaths.push(createSolanaWallet(solanaSelected,index,seed))
+          }
+          setCurrentDerivationPathsWallet([
+            ...currentDerivationPathsWallet,
+            ...currentDerivationPaths,
+          ]);
+        }
+      }
+    
+
+
     }
     // for ethereum -----
   };
@@ -258,7 +298,7 @@ const WalletComp = () => {
                     color: "white",
                   },
                 }}
-                onClick={() => setAddInputMnemonicsCode(true)}
+                onClick={handleAddInputMnemonics}
               >
                 Add
               </Button>
@@ -266,8 +306,8 @@ const WalletComp = () => {
                 variant="contained"
                 startIcon={<DeleteIcon />}
                 onClick={() => {
-                  setAddInputMnemonicsCode(false);
                   setInputMnemonicsCode("");
+                  localStorage.removeItem("secret_phrase");
                 }}
               >
                 Clear
@@ -370,8 +410,8 @@ const WalletComp = () => {
               backgroundColor: "purple",
             },
           }}
-          onClick={()=>{
-            createWallet()
+          onClick={() => {
+            createWallet(true);
           }}
         >
           Create Your Wallet
@@ -505,11 +545,11 @@ const WalletComp = () => {
             <Button
               onClick={handleNext}
               variant="outlined"
-              disabled={activeStep === firstTimeSteps.length - 1}
+              disabled={activeStep === firstTimeSteps.length - 1 }
               sx={{
                 border: "1px solid purple",
                 backgroundColor:
-                  activeStep === firstTimeSteps.length - 1
+                  activeStep === firstTimeSteps.length - 1 || inputMnemonicsCode?.trim()?.length!==12
                     ? "transparent"
                     : "purple",
                 color: "white",

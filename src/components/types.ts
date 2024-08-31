@@ -7,3 +7,5 @@ export type derivationPathType = {
     privateKey?:string | Uint8Array;
     sign?:string;
   };
+
+export type createSolanaWalletType=(value1:derivationPathType,value2:number,seed:Buffer)=>derivationPathType;

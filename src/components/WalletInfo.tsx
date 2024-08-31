@@ -12,6 +12,7 @@ import { derivationPathType } from "./types";
 import { Stack } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import axios from "axios";
+import { Keypair } from "@solana/web3.js";
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
@@ -58,14 +59,22 @@ export default function WalletInfo({
         "params":[`${wallet.publicKey}`]
     })
 
-    console.log('60..res: ',res.data);
     setBalance(res?.data?.result?.value);
    }
    catch(error){
     console.log('Error: ',error);
    }
   }
-console.log('68  wallet ...',wallet)
+
+  // const sendSol=async()=>{
+  //   try{
+  //       const fromkeypair=Keypair.generate();
+  //   }
+  //   catch(error){
+
+  //   }
+  // }
+
   return (
     <React.Fragment>
       <BootstrapDialog
